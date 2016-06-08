@@ -1,6 +1,6 @@
 FROM reinblau/php-apache2
 
-ENV ATOM_VERSION=2.2.0
+ENV ATOM_VERSION=2.2.1
 ENV ATOM_DIR=/var/www
 
 RUN apt-get update && apt-get install -y php5-cli php5-fpm php5-curl php5-mysql php5-xsl php5-json php5-ldap php-apc mysql-client ghostscript
