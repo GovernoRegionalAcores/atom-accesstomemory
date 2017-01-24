@@ -36,11 +36,6 @@ RUN mkdir /usr/share/nginx/atom \
 RUN chown -R www-data:www-data /usr/share/nginx/atom
 RUN chmod o= /usr/share/nginx/atom
 
-#Settings
-RUN mv $ATOM_DIR/apps/qubit/config/settings.yml.tmpl $ATOM_DIR/apps/qubit/config/settings.yml
-RUN sed -i "s@default_culture:        en@default_culture:        pt@g" $ATOM_DIR/apps/qubit/config/settings.yml
-RUN sed -i "s@America/Vancouver@Atlantic/Azores@g" $ATOM_DIR/apps/qubit/config/settings.yml
-ADD descriptionUpdatesSuccess.php $ATOM_DIR/apps/qubit/modules/search/templates/descriptionUpdatesSuccess.php
 ADD bootstrap.php /bootstrap.php
 
 COPY atom.conf /etc/php5/fpm/pool.d/atom.conf
