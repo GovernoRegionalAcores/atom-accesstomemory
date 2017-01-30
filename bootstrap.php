@@ -1,6 +1,6 @@
 <?php
 define('_ATOM_DIR', '/usr/share/nginx/atom');
-define('_ETC_DIR', '/usr/local/etc');
+define('_ETC_DIR', '/etc');
 function getenv_default($name, $default)
 {
   $value = getenv($name);

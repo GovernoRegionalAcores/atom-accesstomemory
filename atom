@@ -1,5 +1,5 @@
 upstream atom {
-  server unix:/var/run/php5-fpm.atom.sock;
+  server unix:/run/php7.0-fpm.atom.sock;
 }
 
 server {

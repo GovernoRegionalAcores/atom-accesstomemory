@@ -7,10 +7,13 @@ mysql -h $MYSQL_PORT_3306_TCP_ADDR -uroot -p$MYSQL_ENV_MYSQL_ROOT_PASSWORD -e "G
 
 php /bootstrap.php $@
 
+chown -R elasticsearch:elasticsearch /var/lib/elasticsearch
+
 update-rc.d elasticsearch defaults 95 10
 /etc/init.d/elasticsearch start
 
 chown -R www-data:www-data $ATOM_DIR
 
-service php5-fpm start
+service php7.0-fpm restart
+
 exec "$@"
