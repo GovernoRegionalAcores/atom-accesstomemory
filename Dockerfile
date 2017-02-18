@@ -14,10 +14,10 @@ RUN apt-get update && apt-get install -y elasticsearch
 RUN systemctl enable elasticsearch
 RUN service elasticsearch start
 
-COPY atom /etc/nginx/sites-available/atom
+ADD atom /etc/nginx/sites-available/atom
 RUN ln -sf /etc/nginx/sites-available/atom /etc/nginx/sites-enabled/atom
 RUN rm /etc/nginx/sites-enabled/default
-COPY atom.conf /
+ADD atom.conf /
 
 RUN service elasticsearch restart
 
