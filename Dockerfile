@@ -52,7 +52,7 @@ RUN echo "extension=apc.so" | tee > /etc/php/7.0/mods-available/apcu-bc.ini
 RUN ln -sf /etc/php/7.0/mods-available/apcu-bc.ini /etc/php/7.0/fpm/conf.d/30-apcu-bc.ini
 RUN ln -sf /etc/php/7.0/mods-available/apcu-bc.ini /etc/php/7.0/cli/conf.d/30-apcu-bc.ini
 
-COPY atom.conf /etc/php/7.0/fpm/pool.d/atom.conf
+ADD atom.conf /etc/php/7.0/fpm/pool.d/atom.conf
 
 RUN wget https://storage.accesstomemory.org/releases/atom-$ATOM_VERSION.tar.gz
 RUN mkdir /usr/share/nginx/atom
