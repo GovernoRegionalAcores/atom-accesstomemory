@@ -2,7 +2,7 @@
 
 ## About
 
-- MySQL is not included in this image, it needs to be linked.
+- MySQL  is not included in this image, it needs to be linked.
 
 ## Usage
 
