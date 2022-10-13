@@ -1,30 +1,67 @@
-FROM reinblau/php-apache2
+FROM ubuntu:22.04
 
-ENV ATOM_VERSION=2.2.0
-ENV ATOM_DIR=/var/www
+RUN apt-get update && apt-get install software-properties-common wget -y
 
-RUN apt-get update && apt-get install -y php5-cli php5-fpm php5-curl php5-mysql php5-xsl php5-json php5-ldap php-apc mysql-client ghostscript
+#ELASTICSEARCH
+RUN add-apt-repository ppa:openjdk-r/ppa
+RUN apt-add-repository ppa:ondrej/php
+RUN apt update
+RUN apt install openjdk-8-jre-headless software-properties-common -y
+RUN wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | apt-key add -
+RUN echo "deb https://artifacts.elastic.co/packages/5.x/apt stable main" | tee -a /etc/apt/sources.list.d/elastic-5.x.list
+RUN apt update
+RUN apt install elasticsearch
+#RUN service elasticsearch enable
+RUN service elasticsearch start
 
-RUN apt-get install openjdk-7-jre-headless -y \
-    && wget -qO - http://packages.elasticsearch.org/GPG-KEY-elasticsearch | apt-key add -
-RUN cd /etc/apt \
-    && echo "deb http://packages.elasticsearch.org/elasticsearch/1.4/debian stable main" >> sources.list \
-    && apt-get update \
-    && apt-get install -y elasticsearch
-RUN update-rc.d elasticsearch defaults 95 10 \
-    && /etc/init.d/elasticsearch start
+#NGINX
+RUN apt-get install nginx -y
+RUN touch /etc/nginx/sites-available/atom
+RUN ln -sf /etc/nginx/sites-available/atom /etc/nginx/sites-enabled/atom
+RUN rm /etc/nginx/sites-enabled/default
+ADD atom /etc/nginx/sites-available/atom
+#RUN service nginx enable
+RUN service nginx start
 
-RUN curl https://storage.accesstomemory.org/releases/atom-$ATOM_VERSION.tar.gz| tar -C $ATOM_DIR -xzf -
+#PHP
+RUN apt-get update && apt-get install -y php7.2-cli \
+					php7.2-curl \
+					php7.2-json \
+					php7.2-ldap \
+					php7.2-mysql \
+					php7.2-opcache \
+					php7.2-readline \
+					php7.2-xml \
+					php7.2-fpm \
+					php7.2-mbstring \
+					php7.2-xsl \
+					php7.2-zip \
+					php7.2-apcu \
+					php-memcached \
+					curl \
+					mysql-client
+			
+ADD atom.conf /etc/php/7.2/fpm/pool.d/atom.conf
 
-RUN cd $ATOM_DIR \
-    && mv atom-$ATOM_VERSION /var/ \
-    && cd /var/ \
-    && mv www www2 \
-    && mv atom-$ATOM_VERSION www
+#RUN service php-fpm7.2 enable
+#RUN service php7.2-fpm start
+RUN rm /etc/php/7.2/fpm/pool.d/www.conf
+RUN service php7.2-fpm start
+
+#GEARMAN
+
+RUN apt install gearman-job-server -y
+
+RUN wget https://storage.accesstomemory.org/releases/atom-2.6.4.tar.gz
+RUN mkdir /usr/share/nginx/atom
+RUN tar xzf atom-2.6.4.tar.gz -C /usr/share/nginx/atom --strip 1
+RUN chown -R www-data:www-data /usr/share/nginx/atom
 
 COPY entrypoint.sh /entrypoint.sh
+
 RUN chmod 777 /entrypoint.sh
+HEALTHCHECK --interval=30s --timeout=10s CMD curl -f http://localhost/ || exit 1
 ENTRYPOINT ["/entrypoint.sh"]
 
-CMD ["/bin/bash", "/root/start.bash"]
 
+CMD ["nginx", "-g", "daemon off;"]
