@@ -1,57 +1,40 @@
 <?php
-
 define('_ATOM_DIR', '/usr/share/nginx/atom');
 define('_ETC_DIR', '/etc');
-
-
 function getenv_default($name, $default)
 {
   $value = getenv($name);
-
   if (false === $value)
   {
     return $default;
   }
-
   return $value;
 }
-
-
 function getenv_or_fail($name)
 {
   $value = getenv($name);
-
   if (false === $value)
   {
     echo "Environment variable ${name} is not defined!";
     exit(1);
   }
-
   return $value;
 }
-
 function get_host_and_port($value, $default_port)
 {
   $parts = explode(':', $value);
-
   if (count($parts) == 1)
   {
     $parts[1] = $default_port;
   }
-
   return array('host' => $parts[0], 'port' => $parts[1]);
 }
-
-
 $CONFIG = array(
-  'atom.development_mode'   => filter_var(getenv_default('ATOM_DEVELOPMENT_MODE', false), FILTER_VALIDATE_BOOLEAN),
-  'atom.elasticsearch_host' => "127.0.0.1",
-#  'ATOM_MEMCACHED_HOST'     => "127.0.0.1",
-  'ATOM_GEARMAND_HOST'      => "127.0.0.1",
-  'atom.mysql_dsn'          => 'mysql:dbname='.getenv_or_fail('DB_NAME').';host='.getenv_or_fail('MYSQL8_1_PORT_3306_TCP_ADDR').';port=3306',
+  'atom.gearmand_host'      => getenv_or_fail('ATOM_GEARMAND_HOST'),
+  'atom.memcached_host'     => getenv_or_fail('ATOM_MEMCACHED_HOST'),
+  'atom.mysql_dsn'          => 'mysql:dbname='.getenv_or_fail('DB_NAME').';host='.getenv_or_fail('MYSQL_PORT_3306_TCP_ADDR').';port=3306',
   'atom.mysql_username'     => getenv_or_fail('DB_USER'),
   'atom.mysql_password'     => getenv_or_fail('DB_PW'),
-  'atom.debug_ip'           => getenv_default('ATOM_DEBUG_IP', ''),
   'php.max_execution_time'  => getenv_default('ATOM_PHP_MAX_EXECUTION_TIME', '120'),
   'php.max_input_time'      => getenv_default('ATOM_PHP_MAX_INPUT_TIME', '120'),
   'php.memory_limit'        => getenv_default('ATOM_PHP_MEMORY_LIMIT', '512M'),
@@ -59,52 +42,29 @@ $CONFIG = array(
   'php.upload_max_filesize' => getenv_default('ATOM_PHP_UPLOAD_MAX_FILESIZE', '64M'),
   'php.max_file_uploads'    => getenv_default('ATOM_PHP_MAX_FILE_UPLOADS', '20'),
   'php.date.timezone'       => getenv_default('ATOM_PHP_DATE_TIMEZONE', 'Atlantic/Azores')
-);
 
+);
 
 #
 # /apps/qubit/config/settings.yml
 #
-
-if (!file_exists(_ATOM_DIR.'/apps/qubit/config/settings.yml'))
-{
-  copy(_ATOM_DIR.'/apps/qubit/config/settings.yml.tmpl', _ATOM_DIR.'/apps/qubit/config/settings.yml');
-}
-
-#
-# /config/propel.ini
-#
-
-@unlink(_ATOM_DIR.'/config/propel.ini');
-touch(_ATOM_DIR.'/config/propel.ini');
+copy(_ATOM_DIR.'/apps/qubit/config/settings.yml.tmpl', _ATOM_DIR.'/apps/qubit/config/settings.yml');
 
 
-#
-# /apps/qubit/config/gearman.yml
-#
-
-$gearman_yml = <<<EOT
-all:
-  servers:
-    default: ${CONFIG['ATOM_GEARMAND_HOST']}
-EOT;
-
-@unlink(_ATOM_DIR.'/apps/qubit/config/gearman.yml');
-file_put_contents(_ATOM_DIR.'/apps/qubit/config/gearman.yml', $gearman_yml);
 
 
-#
-# /apps/qubit/config/app.yml
-#
 
-if (!file_exists(_ATOM_DIR.'/apps/qubit/config/app.yml'))
-{
-  $parts = get_host_and_port($CONFIG['ATOM_MEMCACHED_HOST'], 11211);
-  $app_yml = <<<EOT
+
+
+
+
+
+$parts = get_host_and_port($CONFIG['atom.memcached_host'], 11211);
+$app_yml = <<<EOT
 all:
   upload_limit: -1
   download_timeout: 10
-
+  cache_engine: sfMemcacheCache
   cache_engine_param:
     host: ${parts['host']}
     port: ${parts['port']}
@@ -114,74 +74,105 @@ all:
   read_only: false
   htmlpurifier_enabled: false
 EOT;
-#  cache_engine: sfMemcacheCache
-  file_put_contents(_ATOM_DIR.'/apps/qubit/config/app.yml', $app_yml);
-}
+
+@unlink(_ATOM_DIR.'/apps/qubit/config/app.yml');
+file_put_contents(_ATOM_DIR.'/apps/qubit/config/app.yml', $app_yml);
+
 
 #
 # /apps/qubit/config/factories.yml
 #
+var_dump($parts);
 
-#if (!file_exists(_ATOM_DIR.'/apps/qubit/config/factories.yml'))
-#{
-#  $parts = get_host_and_port($CONFIG['ATOM_MEMCACHED_HOST'], 11211);
-#  $factories_yml = <<<EOT
-#prod:
-#  storage:
-#    class: QubitCacheSessionStorage
-#    param:
-#      session_name: symfony
-#      session_cookie_httponly: true
-#      session_cookie_secure: true
-#      cache:
-#        class: sfMemcacheCache
-#        param:
-#          host: ${parts['host']}
-#          port: ${parts['port']}
-#          prefix: atom
-#          storeCacheInfo: true
-#          persistent: true
-#dev:
-#  storage:
-#    class: QubitCacheSessionStorage
-#    param:
-#      session_name: symfony
-#      session_cookie_httponly: true
-#      session_cookie_secure: true
-#      cache:
-#        class: sfMemcacheCache
-#        param:
-#          host: ${parts['host']}
-#          port: ${parts['port']}
-#          prefix: atom
-#          storeCacheInfo: true
-#         persistent: true
-#EOT;
+$parts = get_host_and_port($CONFIG['atom.memcached_host'], 11211);
+$factories_yml = <<<EOT
+prod:
+  storage:
+    class: QubitCacheSessionStorage
+    param:
+      session_name: symfony
+      session_cookie_httponly: true
+      session_cookie_secure: true
+      cache:
+        class: sfMemcacheCache
+        param:
+          host: 172.17.0.2
+          port: 11211
+          prefix: atom
+          storeCacheInfo: true
+          persistent: true
 
-#  file_put_contents(_ATOM_DIR.'/apps/qubit/config/factories.yml', $factories_yml);
-#}
+dev:
+  storage:
+    class: QubitCacheSessionStorage
+    param:
+      session_name: symfony
+      session_cookie_httponly: true
+      session_cookie_secure: true
+      cache:
+        class: sfMemcacheCache
+        param:
+          host: 172.17.0.2
+          port: 11211
+          prefix: atom
+          storeCacheInfo: true
+          persistent: true
 
-
-#
-# /config/search.yml
-#
-
-$parts = get_host_and_port($CONFIG['atom.elasticsearch_host'], 9200);
-$search_yml = <<<EOT
-all:
-  server:
-    host: ${parts['host']}
-    post: ${parts['port']}
 EOT;
 
-@unlink(_ATOM_DIR.'/config/search.yml');
-file_put_contents(_ATOM_DIR.'/config/search.yml', $search_yml);
+@unlink(_ATOM_DIR.'/apps/qubit/config/factories.yml');
+file_put_contents(_ATOM_DIR.'/apps/qubit/config/factories.yml', $factories_yml);
 
 
+
+$gearman_yml = <<<EOT
+all:
+  servers:
+    default: ${CONFIG['atom.gearmand_host']}
+EOT;
+
+@unlink(_ATOM_DIR.'/apps/qubit/config/gearman.yml');
+file_put_contents(_ATOM_DIR.'/apps/qubit/config/gearman.yml', $gearman_yml);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#
+# /config/propel.ini
+#
+@unlink(_ATOM_DIR.'/config/propel.ini');
+touch(_ATOM_DIR.'/config/propel.ini');
 #
 # /config/config.php
 #
-
 $mysql_config = array(
   'all' => array(
     'propel' => array(
@@ -221,17 +212,13 @@ $mysql_config = array(
     ),
   ),
 );
-
 $config_php = "<?php\n\nreturn ".var_export($mysql_config, 1).";\n\n?>\n";
-
 @unlink(_ATOM_DIR.'/config/config.php');
 file_put_contents(_ATOM_DIR.'/config/config.php', $config_php);
-
 
 #
 # php ini
 #
-
 $php_ini = <<<EOT
 [PHP]
 output_buffering = 4096
@@ -254,8 +241,11 @@ session.use_only_cookies = off
 opcache.fast_shutdown = on
 opcache.max_accelerated_files = 10000
 opcache.validate_timestamps = off
+apc.enabled = 1 
+apc.shm_size = 64M 
+apc.num_files_hint = 5000 
+apc.stat = 0
 EOT;
-
 if ($CONFIG['atom.development_mode'])
 {
   $php_ini .= <<<EOT
@@ -265,19 +255,15 @@ expose_php = on
 opcache.validate_timestamps = on
 EOT;
 }
-
 @unlink(_ETC_DIR.'/php/php.ini');
 file_put_contents(_ETC_DIR.'/php/php.ini', $php_ini);
 
-
-#
-# fpm ini
-#
-
+/*
 $fpm_ini = <<<EOT
 [global]
 error_log = /proc/self/fd/2
 daemonize = no
+
 [atom]
 access.log = /proc/self/fd/2
 clear_env = no
@@ -290,8 +276,9 @@ pm.max_children = 5
 pm.start_servers = 2
 pm.min_spare_servers = 1
 pm.max_spare_servers = 3
-env[ATOM_DEBUG_IP] = ${CONFIG['atom.debug_ip']}
+
 EOT;
 
-@unlink(_ETC_DIR.'/php-fpm.d/atom.conf');
-file_put_contents(_ETC_DIR.'/php-fpm.d/atom.conf', $fpm_ini);
+@unlink(_ETC_DIR.'/php/7.0/fpm/pool.d/atom.conf');
+file_put_contents(_ETC_DIR.'/php/7.0/fpm/pool.d/atom.conf', $fpm_ini);
+*/

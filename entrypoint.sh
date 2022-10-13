@@ -2,24 +2,13 @@
 set -e
 
 #DATABASE INIT/CONFIG
-mysql -h $MYSQL8_1_PORT_3306_TCP_ADDR -uroot -p$MYSQL8_1_ENV_MYSQL_ROOT_PASSWORD -e "CREATE DATABASE IF NOT EXISTS $DB_NAME CHARACTER SET utf8 COLLATE utf8_unicode_ci;"
-mysql -h $MYSQL8_1_PORT_3306_TCP_ADDR -uroot -p$MYSQL8_1_ENV_MYSQL_ROOT_PASSWORD -e "GRANT INDEX, CREATE, SELECT, INSERT, UPDATE, DELETE, ALTER, LOCK TABLES ON $DB_NAME.* TO '$DB_USER';"
+mysql -h $MYSQL8_PORT_3306_TCP_ADDR -uroot -p$MYSQL8_ENV_MYSQL_ROOT_PASSWORD -e "CREATE DATABASE IF NOT EXISTS $DB_NAME CHARACTER SET utf8 COLLATE utf8_unicode_ci;"
+#mysql -h $MYSQL8_1_PORT_3306_TCP_ADDR -uroot -p$MYSQL8_1_ENV_MYSQL_ROOT_PASSWORD -e "GRANT INDEX, CREATE, SELECT, INSERT, UPDATE, DELETE, ALTER, LOCK TABLES ON $DB_NAME.* TO '$DB_USER';"
 
-#Gearman
-sed -i "s@PARAMS=\"--listen=localhost@PARAMS=\"--listen=127.0.0.1@g" /etc/default/gearman-job-server
-service gearman-job-server start
-
+#mkdir $ATOM_DIR
 #chown -R www-data:www-data $ATOM_DIR
 
-#Memcache
-mkdir /var/run/memcached
-chown memcache:memcache /var/run/memcached
-sed -i "s@/var/run/memcached/memcached.pid@/var/run/memcached.pid@g" /etc/memcached.conf
-service memcached start
-chown memcache:memcache /var/run/memcached.pid
-
-
-php /bootstrap.php $@
+#php /bootstrap.php $@
 
 #Worker $ FPM
 
@@ -29,7 +18,7 @@ php /bootstrap.php $@
 
 
 #Code base Internationalization
-sed -i "s@default_culture:        en@default_culture:        pt@g" $ATOM_DIR/apps/qubit/config/settings.yml
+#sed -i "s@default_culture:        en@default_culture:        pt@g" $ATOM_DIR/apps/qubit/config/settings.yml
 #sed -i "s@Add new@Adicionar novo@g" $ATOM_DIR/js/dialog.js
 #sed -i "s@text: 'Cancel'@text: 'Cancelar'@g" $ATOM_DIR/js/dialog.js
 
@@ -109,8 +98,10 @@ exec "$@"
         ;;
 
 esac
-
-
+#Gearman
+sed -i "s@PARAMS=\"--listen=localhost\"@PARAMS=\"--listen=* --port=4730\"@g" /etc/default/gearman-job-server
+service gearman-job-server start
+service memcached start
 php /usr/share/nginx/atom/symfony jobs:worker &
 
 #exec "${@}"
